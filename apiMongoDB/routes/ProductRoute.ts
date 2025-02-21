@@ -1,7 +1,7 @@
 import express, { Request, Response, NextFunction } from 'express';
 import multer from 'multer';
 import path from 'path';
-import { createProduct, getProductByCatID, getProductByID, getAllProducts } from '../controllers/ProductController';
+import { createProduct, getProductByCatID, getProductByID, getAllProducts, deleteProduct, getProductsByPrice, getProductsByStock } from '../controllers/ProductController';
 
 const router = express.Router();
 
@@ -67,5 +67,31 @@ router.get('/getAllProducts', async (req: Request, res: Response, next: NextFunc
     }
 });
 
+router.delete('/:id', async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        await deleteProduct(req, res);
+    } catch (error) {
+        next(error);
+    }
+});
+
+
+router.get('/filter', async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        await getProductsByPrice(req, res);
+    } catch (error) {
+        next(error);
+    }
+});
+
+
+// Replace the price filter route with stock filter
+router.get('/filter', async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        await getProductsByStock(req, res);
+    } catch (error) {
+        next(error);
+    }
+});
 
 export { router as ProductRoute };

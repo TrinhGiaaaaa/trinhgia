@@ -9,7 +9,7 @@ const StartServer = async () => {
     await App(app);
 
     app.listen(PORT, () => {
-        console.log(`Connected on ${PORT}!!! DONE : -))`)
+        console.log(`Connected on ${PORT}!!! DONE :-)`)
     })
 }
 
