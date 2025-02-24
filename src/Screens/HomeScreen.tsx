@@ -13,13 +13,20 @@ import {
   SafeAreaView,
 } from 'react-native';
 import { ProductListParams, CategoryParams } from '../TypesCheck/HomeProp';
-import { fetchCategories, fetchProductsByCatID, fetchProductsByStock } from '../middleware/HomeMiddleware';
+import {
+  fetchCategories,
+  fetchProductsByCatID,
+  fetchProductsInStock,
+  fetchProductsOutOfStock,
+  getImageUrl
+} from '../middleware/HomeMiddleware';
 
 const { width } = Dimensions.get('window');
 
 export default function HomeScreen({ navigation }: any) {
   const [getCategory, setGetCategory] = useState<CategoryParams[]>([]);
   const [getProductsByCatID, setGetProductsByCatID] = useState<ProductListParams[]>([]);
+  const [filteredProducts, setFilteredProducts] = useState<ProductListParams[]>([]);
   const [activeCat, setActiveCat] = useState("");
   const [activeStock, setActiveStock] = useState<boolean | null>(null);
   const [isProductLoading, setIsProductLoading] = useState(false);
@@ -42,13 +49,19 @@ export default function HomeScreen({ navigation }: any) {
     const loadProducts = async () => {
       setIsProductLoading(true);
       try {
+        let products;
         if (activeCat) {
-          await fetchProductsByCatID({ setGetProductsByCatID, catID: activeCat });
+          products = await fetchProductsByCatID({ setGetProductsByCatID, catID: activeCat });
         } else if (activeStock !== null) {
-          await fetchProductsByStock({ setGetProductsByCatID, inStock: activeStock });
+          if (activeStock) {
+            products = await fetchProductsInStock({ setGetProductsByCatID });
+          } else {
+            products = await fetchProductsOutOfStock({ setGetProductsByCatID });
+          }
         } else {
-          await fetchProductsByCatID({ setGetProductsByCatID, catID: '' });
+          products = await fetchProductsByCatID({ setGetProductsByCatID, catID: '' });
         }
+        setFilteredProducts(products);
         setError(null);
       } catch (err) {
         setError('Failed to load products');
@@ -66,7 +79,14 @@ export default function HomeScreen({ navigation }: any) {
   };
 
   const handleStockFilter = (inStock: boolean | null) => {
-    setActiveStock(inStock);
+    if (activeStock === inStock) {
+      setActiveStock(null);
+      setFilteredProducts(getProductsByCatID);
+    } else {
+      setActiveStock(inStock);
+      const filtered = getProductsByCatID.filter(product => product.inStock === inStock);
+      setFilteredProducts(filtered);
+    }
     setActiveCat("");
   };
 
@@ -81,21 +101,39 @@ export default function HomeScreen({ navigation }: any) {
   const renderItem = ({ item }: { item: ProductListParams }) => (
     <TouchableOpacity
       style={styles.productCard}
-      onPress={() => navigation.navigate("ProductDetail", { product: item })}
+      onPress={() => navigation.navigate("productDetails", {
+        _id: item._id,
+        name: item.name,
+        images: [item.images[0]],
+        price: item.price,
+        oldPrice: item.oldPrice,
+        inStock: item.inStock,
+        description: item.description,
+        quantity: 1
+      })}
     >
       <Image
         source={{
-          uri: item.images[0].replace(
-            "localhost:9000",
-            Platform.OS === "android" ? "10.106.23.56:9000" : "localhost:9000"
-          ),
+          uri: getImageUrl(item.images[0]) || undefined
         }}
         style={styles.productImage}
         resizeMode="cover"
+        defaultSource={require('../../assets/cat404.jpg')}
+        onError={(e) => {
+          console.log('Image load error:', e.nativeEvent.error);
+        }}
       />
       <View style={styles.productInfo}>
         <Text style={styles.productName} numberOfLines={2}>{item.name}</Text>
-        <Text style={styles.productPrice}>${item.price}</Text>
+        <View style={styles.priceContainer}>
+          <Text style={styles.productPrice}>${item.price}</Text>
+          {item.oldPrice > 0 && (
+            <Text style={styles.oldPrice}>${item.oldPrice}</Text>
+          )}
+        </View>
+        <Text style={[styles.stockStatus, item.inStock ? styles.inStockText : styles.outOfStockText]}>
+          {item.inStock ? 'In Stock' : 'Out of Stock'}
+        </Text>
       </View>
     </TouchableOpacity>
   );
@@ -112,9 +150,7 @@ export default function HomeScreen({ navigation }: any) {
             pagingEnabled
             showsHorizontalScrollIndicator={false}
             onMomentumScrollEnd={(event) => {
-              const slideIndex = Math.floor(
-                event.nativeEvent.contentOffset.x / width
-              );
+              const slideIndex = Math.floor(event.nativeEvent.contentOffset.x / width);
               setCurrentSlideIndex(slideIndex);
             }}
           />
@@ -122,10 +158,7 @@ export default function HomeScreen({ navigation }: any) {
             {sliderImages.map((_, index) => (
               <View
                 key={index}
-                style={[
-                  styles.paginationDot,
-                  currentSlideIndex === index && styles.paginationDotActive,
-                ]}
+                style={[styles.paginationDot, currentSlideIndex === index && styles.paginationDotActive]}
               />
             ))}
           </View>
@@ -143,7 +176,7 @@ export default function HomeScreen({ navigation }: any) {
               }}
             >
               <Text style={[styles.categoryText, activeCat === "" && activeStock === null && styles.activeText]}>
-                All
+                All ({getProductsByCatID.length})
               </Text>
             </TouchableOpacity>
             {getCategory.map((category) => (
@@ -169,7 +202,7 @@ export default function HomeScreen({ navigation }: any) {
               onPress={() => handleStockFilter(true)}
             >
               <Text style={[styles.filterText, activeStock === true && styles.activeText]}>
-                In Stock
+                In Stock ({getProductsByCatID.filter(p => p.inStock).length})
               </Text>
             </TouchableOpacity>
             <TouchableOpacity
@@ -177,7 +210,7 @@ export default function HomeScreen({ navigation }: any) {
               onPress={() => handleStockFilter(false)}
             >
               <Text style={[styles.filterText, activeStock === false && styles.activeText]}>
-                Out of Stock
+                Out of Stock ({getProductsByCatID.filter(p => !p.inStock).length})
               </Text>
             </TouchableOpacity>
           </View>
@@ -185,14 +218,16 @@ export default function HomeScreen({ navigation }: any) {
 
         {/* Products Grid */}
         <View style={styles.productsContainer}>
-          <Text style={styles.sectionTitle}>Products</Text>
+          <Text style={styles.sectionTitle}>
+            Products ({filteredProducts.length})
+          </Text>
           {isProductLoading ? (
             <ActivityIndicator size="large" color="#007AFF" style={styles.loader} />
           ) : error ? (
             <Text style={styles.errorText}>{error}</Text>
           ) : (
             <View style={styles.productGrid}>
-              {getProductsByCatID.map((item) => (
+              {filteredProducts.map((item) => (
                 <View key={item._id} style={styles.productWrapper}>
                   {renderItem({ item })}
                 </View>
@@ -287,46 +322,78 @@ const styles = StyleSheet.create({
   activeText: {
     color: '#fff',
   },
-  productsContainer: {
-    padding: 15,
-  },
-  productGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    marginHorizontal: -5,
-  },
   productWrapper: {
     width: '50%',
-    padding: 5,
+    padding: 8,
   },
   productCard: {
     backgroundColor: '#fff',
-    borderRadius: 10,
+    borderRadius: 12,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 8,
     elevation: 3,
+    overflow: 'hidden',
+    flex: 1,
   },
   productImage: {
     width: '100%',
-    height: 150,
-    borderTopLeftRadius: 10,
-    borderTopRightRadius: 10,
+    aspectRatio: 1,
+    borderTopLeftRadius: 12,
+    borderTopRightRadius: 12,
   },
   productInfo: {
-    padding: 10,
+    padding: 12,
   },
   productName: {
     fontSize: 14,
     fontWeight: '600',
-    marginBottom: 5,
     color: '#333',
+    marginBottom: 8,
+    height: 40,
+    lineHeight: 20,
+  },
+  priceContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
   },
   productPrice: {
     fontSize: 16,
     fontWeight: 'bold',
     color: '#007AFF',
+    marginRight: 8,
+  },
+  oldPrice: {
+    fontSize: 14,
+    color: '#999',
+    textDecorationLine: 'line-through',
+  },
+  stockStatus: {
+    fontSize: 12,
+    fontWeight: '500',
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    borderRadius: 4,
+    alignSelf: 'flex-start',
+  },
+  inStockText: {
+    color: '#4CAF50',
+    backgroundColor: '#E8F5E9',
+  },
+  outOfStockText: {
+    color: '#F44336',
+    backgroundColor: '#FFEBEE',
+  },
+  productGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    margin: -8,
+  },
+  productsContainer: {
+    flex: 1,
+    padding: 15,
   },
   loader: {
     marginTop: 20,

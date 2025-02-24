@@ -17,27 +17,29 @@ interface IFilterProps {
 }
 
 
-// For Android Emulator, use 10.0.2.2 instead of localhost
 export const getImageUrl = (imagePath: string) => {
     if (!imagePath) return null;
 
-    // If it's already a full URL, replace localhost with IP for Android
-    if (imagePath.startsWith('http')) {
-        if (Platform.OS === 'android') {
-            return imagePath.replace('localhost', '10.106.23.84');
+    // Replace localhost with your PC's IP address for Android
+    const IP_ADDRESS = '10.106.20.133'; // Update this with your PC's IP address
+
+    if (Platform.OS === 'android') {
+        if (imagePath.startsWith('http')) {
+            return imagePath.replace('localhost:9000', `${IP_ADDRESS}:9000`);
         }
-        return imagePath;
+        return `http://${IP_ADDRESS}:9000/assets/${imagePath}`;
     }
 
-    // If it's just a filename, construct the full URL
-    const baseUrl = Platform.OS === 'android'
-        ? 'http://10.106.23.56:9000'
-        : 'http://localhost:9000';
-    return `${baseUrl}/assets/${imagePath}`;
+    // For iOS or web, use localhost
+    if (imagePath.startsWith('http')) {
+        return imagePath;
+    }
+    return `http://localhost:9000/assets/${imagePath}`;
 };
 
+// Update BASE_URL as well
 const BASE_URL = Platform.OS === 'android'
-    ? 'http://10.106.23.56:9000'
+    ? 'http://10.106.20.133:9000'
     : 'http://localhost:9000';
 
 const api = axios.create({
@@ -65,7 +67,7 @@ export const fetchCategories = async ({ setGetCategory }: ICatProps) => {
     }
 };
 
-export const fetchProductsByCatID = async ({ setGetProductsByCatID, catID }: IProdByCatProps) => {
+export const fetchProductsByCatID = async ({ setGetProductsByCatID, catID }: IProdByCatProps): Promise<ProductListParams[]> => {
     try {
         let response;
         if (catID) {
@@ -76,44 +78,45 @@ export const fetchProductsByCatID = async ({ setGetProductsByCatID, catID }: IPr
         console.log('Products response:', response.data);
         if (response.data) {
             setGetProductsByCatID(response.data);
+            return response.data;
         }
+        return [];
     } catch (error: any) {
-        console.error('Error fetching products:', {
-            message: error.message,
-            status: error.response?.status,
-            data: error.response?.data,
-            catID
-        });
-        // Set empty array instead of throwing error to handle gracefully
+        console.error('Error fetching products:', error);
         setGetProductsByCatID([]);
         throw error;
     }
 };
 
-export const fetchProductsByPrice = async ({ setGetProductsByCatID, maxPrice }: IFilterProps) => {
+export const fetchProductsInStock = async ({ setGetProductsByCatID }: {
+    setGetProductsByCatID: (products: ProductListParams[]) => void
+}): Promise<ProductListParams[]> => {
     try {
-        const response = await api.get(`/product/filter?maxPrice=${maxPrice}`);
+        const response = await api.get('/product/inStock');
         if (response.data) {
             setGetProductsByCatID(response.data);
+            return response.data;
         }
+        return [];
     } catch (error: any) {
-        console.error('Error fetching products by price:', error);
+        console.error('Error fetching in-stock products:', error);
         setGetProductsByCatID([]);
         throw error;
     }
 };
 
-export const fetchProductsByStock = async ({ setGetProductsByCatID, inStock }: {
-    setGetProductsByCatID: (products: ProductListParams[]) => void,
-    inStock: boolean | null
-}) => {
+export const fetchProductsOutOfStock = async ({ setGetProductsByCatID }: {
+    setGetProductsByCatID: (products: ProductListParams[]) => void
+}): Promise<ProductListParams[]> => {
     try {
-        const response = await api.get(`/product/filter?inStock=${inStock}`);
+        const response = await api.get('/product/outOfStock');
         if (response.data) {
             setGetProductsByCatID(response.data);
+            return response.data;
         }
+        return [];
     } catch (error: any) {
-        console.error('Error fetching products by stock status:', error);
+        console.error('Error fetching out-of-stock products:', error);
         setGetProductsByCatID([]);
         throw error;
     }

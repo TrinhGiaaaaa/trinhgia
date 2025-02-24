@@ -3,6 +3,10 @@ export interface ProductListParams {
     name: string;
     description: string;
     price: number;
+    inStock: boolean;
+    isFeatured: boolean;
+    quantity: number;
+    oldPrice: number;
     images: string[];
     category: string;
     createdAt: Date;

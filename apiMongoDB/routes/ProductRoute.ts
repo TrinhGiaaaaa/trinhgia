@@ -1,7 +1,7 @@
 import express, { Request, Response, NextFunction } from 'express';
 import multer from 'multer';
 import path from 'path';
-import { createProduct, getProductByCatID, getProductByID, getAllProducts, deleteProduct, getProductsByPrice, getProductsByStock } from '../controllers/ProductController';
+import { createProduct, getProductByCatID, getProductByID, getAllProducts, deleteProduct, getProductsByPrice, getProductsInStock, getProductsOutOfStock } from '../controllers/ProductController';
 
 const router = express.Router();
 
@@ -30,8 +30,8 @@ router.post('/createProduct', (req: Request, res: Response, next: NextFunction) 
         if (err instanceof multer.MulterError) {
             return res.status(400).json({
                 error: true,
-                message: `Multer error: ${err.message}`,
-                field: err.field
+                message: `Multer error: ${err.message},
+                field: err.field`
             });
         } else if (err) {
             return res.status(400).json({
@@ -42,7 +42,6 @@ router.post('/createProduct', (req: Request, res: Response, next: NextFunction) 
         await createProduct(req, res);
     });
 });
-
 router.get('/category/:CatID', async (req: Request, res: Response, next: NextFunction) => {
     try {
         await getProductByCatID(req, res);
@@ -76,19 +75,17 @@ router.delete('/:id', async (req: Request, res: Response, next: NextFunction) =>
 });
 
 
-router.get('/filter', async (req: Request, res: Response, next: NextFunction) => {
+router.get('/inStock', async (req: Request, res: Response, next: NextFunction) => {
     try {
-        await getProductsByPrice(req, res);
+        await getProductsInStock(req, res);
     } catch (error) {
         next(error);
     }
 });
 
-
-// Replace the price filter route with stock filter
-router.get('/filter', async (req: Request, res: Response, next: NextFunction) => {
+router.get('/outOfStock', async (req: Request, res: Response, next: NextFunction) => {
     try {
-        await getProductsByStock(req, res);
+        await getProductsOutOfStock(req, res);
     } catch (error) {
         next(error);
     }

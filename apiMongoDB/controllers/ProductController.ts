@@ -89,23 +89,33 @@ export const getProductsByPrice = async (req: Request, res: Response) => {
 };
 
 
-// Replace getProductsByPrice with getProductsByStock
-export const getProductsByStock = async (req: Request, res: Response) => {
+export const getProductsInStock = async (req: Request, res: Response) => {
     try {
-        const inStock = req.query.inStock === 'true';
         const products = await PRODUCTS.find({
-            inStock: inStock
+            inStock: true
         });
-
-        if (!products || products.length === 0) {
-            return res.status(200).json([]);
-        }
 
         res.status(200).json(products);
     } catch (error: any) {
-        console.error('Error in getProductsByStock:', error);
+        console.error('Error in getProductsInStock:', error);
         res.status(500).json({
-            error: `Failed to fetch products by stock status: ${error.message}`
+            error: `Failed to fetch in-stock products: ${error.message}`
+        });
+    }
+};
+
+// Get products out of stock
+export const getProductsOutOfStock = async (req: Request, res: Response) => {
+    try {
+        const products = await PRODUCTS.find({
+            inStock: false
+        });
+
+        res.status(200).json(products);
+    } catch (error: any) {
+        console.error('Error in getProductsOutOfStock:', error);
+        res.status(500).json({
+            error: `Failed to fetch out-of-stock products: ${error.message}`
         });
     }
 };
