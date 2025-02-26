@@ -20,6 +20,10 @@ import {
   fetchProductsOutOfStock,
   getImageUrl
 } from '../middleware/HomeMiddleware';
+import { CartState } from '../TypesCheck/productCartTypes';
+import { useSelector } from 'react-redux';
+import DisplayMessage from '../Components/ProductDetails/DisplayMessage';
+import HeadersComponent from '../Components/HeaderComponents/HeaderComponent';
 
 const { width } = Dimensions.get('window');
 
@@ -32,6 +36,9 @@ export default function HomeScreen({ navigation }: any) {
   const [isProductLoading, setIsProductLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [currentSlideIndex, setCurrentSlideIndex] = useState(0);
+  const cart = useSelector((state: CartState) => state.cart.cart);
+  const [message, setMessage] = React.useState("");
+  const [displayMessage, setDisplayMessage] = React.useState<boolean>(false);
 
   const sliderImages = [
     require('../../assets/product1.jpg'),
@@ -73,6 +80,28 @@ export default function HomeScreen({ navigation }: any) {
     loadProducts();
   }, [activeCat, activeStock]);
 
+  const gotoCartScreen = () => {
+    if (cart.length === 0) {
+      setMessage("Cart is empty. Please add products to cart.");
+      setDisplayMessage(true);
+      setTimeout(() => {
+        setDisplayMessage(false);
+      }, 3000);
+    } else {
+      navigation.navigate("TabsStack", { screen: "Cart" });
+    }
+  };
+
+  const goToPreviousScreen = () => {
+    if (navigation.canGoBack()) {
+      console.log("Chuyển về trang trước.");
+      navigation.goBack();
+    } else {
+      console.log("Không thể quay lại, chuyển về trang Onboarding.");
+      navigation.navigate("OnboardingScreen"); // Điều hướng fallback nếu không quay lại được
+    }
+  };
+
   const handleCategoryPress = (catId: string) => {
     setActiveCat(catId);
     setActiveStock(null);
@@ -101,7 +130,7 @@ export default function HomeScreen({ navigation }: any) {
   const renderItem = ({ item }: { item: ProductListParams }) => (
     <TouchableOpacity
       style={styles.productCard}
-      onPress={() => navigation.navigate("productDetails", {
+      onPress={() => navigation.navigate("ProductDetails", { // Change "productDetails" to "ProductDetails"
         _id: item._id,
         name: item.name,
         images: [item.images[0]],
@@ -139,7 +168,9 @@ export default function HomeScreen({ navigation }: any) {
   );
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={{ paddingTop: Platform.OS === "android" ? 1 : 0, flex: 1, backgroundColor: "white" }}>
+      {displayMessage && <DisplayMessage message={message} visible={() => setDisplayMessage(!displayMessage)} />}
+      <HeadersComponent gotoCartScreen={gotoCartScreen} cartLength={cart.length} goToPrevios={goToPreviousScreen} />
       <ScrollView showsVerticalScrollIndicator={false}>
         {/* Image Slider */}
         <View style={styles.sliderContainer}>

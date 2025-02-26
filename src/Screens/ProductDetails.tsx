@@ -1,28 +1,65 @@
-import { View, Image, Text, Platform, ScrollView, Dimensions, TouchableOpacity, SafeAreaView, StyleSheet } from 'react-native'
+import {
+    View,
+    Image,
+    Text,
+    Platform,
+    ScrollView,
+    Dimensions,
+    SafeAreaView,
+    StyleSheet,
+    TouchableOpacity,
+    Pressable
+} from 'react-native'
 import React, { useState } from 'react'
-import { RootStackScreenProps } from '../Navigation/RootNavigator'
-import HeaderComponent from '../Components/HeaderComponents/HeaderComponent'
-import { AntDesign, MaterialCommunityIcons, Ionicons } from '@expo/vector-icons'
+import { TabsStackScreenProps } from '../Navigation/TabsNavigation'
+import HeaderComponent, { HeadersComponent } from '../Components/HeaderComponents/HeaderComponent'
+import { AntDesign, MaterialCommunityIcons, Feather } from '@expo/vector-icons'
 import { getImageUrl } from '../middleware/HomeMiddleware'
+import { addToCart } from '../redux/CartReducer'
+import { useDispatch, useSelector } from 'react-redux'
+import { CartState, ProductListParams } from '../TypesCheck/productCartTypes'
+import DisplayMessage from '../Components/ProductDetails/DisplayMessage'
 
-const { width } = Dimensions.get('window')
 
-const ProductDetails = ({ navigation, route }: RootStackScreenProps<'productDetails'>) => {
-    const { _id, name, price, oldPrice, inStock, description, quantity, images } = route.params;
+
+const { width } = Dimensions.get('window');
+
+const ProductDetails = ({ navigation, route }: TabsStackScreenProps<"ProductDetails">) => {
+    const { _id, name, price, oldPrice, inStock, description, images } = route.params;
     const [isFavorite, setIsFavorite] = useState(false);
     const [itemQuantity, setItemQuantity] = useState(1);
+    const cart = useSelector((state: CartState) => state.cart.cart);
+    const dispatch = useDispatch();
+    const [addedToCart, setAddedToCart] = React.useState(false);
+    const [message, setMessage] = React.useState("");
+    const [displayMessage, setDisplayMessage] = React.useState<boolean>(false);
+    const { width } = Dimensions.get('window')
+    const productItemObj: ProductListParams = route.params as ProductListParams;
+
+
+
+    const gotoCartScreen = () => {
+        if (cart.length === 0) {
+            setMessage("Cart is empty. Please add products to cart.");
+            setDisplayMessage(true);
+            setTimeout(() => {
+                setDisplayMessage(false);
+            }, 3000);
+        } else {
+            navigation.navigate("TabsStack", { screen: "Cart" });
+        }
+    };
 
     const goToPreviousScreen = () => {
         if (navigation.canGoBack()) {
-            navigation.goBack()
+            console.log("Chuyển về trang trước.");
+            navigation.goBack();
         } else {
-            navigation.navigate("OnboardingScreen")
+            console.log("Không thể quay lại, chuyển về trang Onboarding.");
+            navigation.navigate("OnboardingScreen");  // Điều hướng fallback nếu không quay lại được
         }
-    }
+    };
 
-    const goToCartScreen = () => {
-        navigation.navigate('Cart');
-    }
 
     const handleQuantityChange = (increment: boolean) => {
         setItemQuantity(prev => {
@@ -34,9 +71,51 @@ const ProductDetails = ({ navigation, route }: RootStackScreenProps<'productDeta
         });
     }
 
+
+    const addItemToCart = (ProductItemObj: ProductListParams) => {
+        // Create a new product object with the current quantity
+        const productToAdd = {
+            ...ProductItemObj,
+            quantity: itemQuantity
+        };
+
+        if (!inStock) {
+            setMessage("Product is out of stock.");
+            setDisplayMessage(true);
+            setTimeout(() => {
+                setDisplayMessage(false);
+            }, 3000);
+            return;
+        }
+
+        // Check if item already exists in cart
+        const findItem = cart.find((product) => product._id === ProductItemObj._id);
+
+        if (findItem) {
+            setMessage("Product is already in cart.");
+            setDisplayMessage(true);
+            setTimeout(() => {
+                setDisplayMessage(false);
+            }, 3000);
+            return;
+        }
+
+        // If item is not in cart, add it
+        setAddedToCart(true);
+        dispatch(addToCart(productToAdd));
+        setMessage("Product added to cart successfully.");
+        setDisplayMessage(true);
+
+        setTimeout(() => {
+            setDisplayMessage(false);
+            setAddedToCart(false);
+        }, 3000);
+    };
+
     return (
-        <SafeAreaView style={styles.container}>
-            <HeaderComponent gotoCartScreen={goToCartScreen} goToPrevios={goToPreviousScreen} />
+        <SafeAreaView style={{ paddingTop: Platform.OS === 'android' ? 20 : 0, flex: 1, backgroundColor: "white" }}>
+            {displayMessage && <DisplayMessage message={message} visible={() => setDisplayMessage(!displayMessage)} />}
+            <HeadersComponent gotoCartScreen={gotoCartScreen} cartLength={cart.length} goToPrevios={goToPreviousScreen} />
             <ScrollView>
                 {/* Image Section with Favorite Button */}
                 <View style={styles.imageContainer}>
@@ -130,9 +209,22 @@ const ProductDetails = ({ navigation, route }: RootStackScreenProps<'productDeta
                     !inStock && styles.disabledButton
                 ]}
                 disabled={!inStock}
+                onPress={() => addItemToCart(productItemObj)}
             >
-                <Text style={styles.addToCartText}>Add to Cart</Text>
+                <Text style={styles.addToCartText}>
+                    {addedToCart ? 'Added to Cart' : 'Add to Cart'}
+                </Text>
             </TouchableOpacity>
+            {/* Add Message Display */}
+            {displayMessage && (
+                <View style={styles.messageContainer}>
+                    <Text style={styles.messageText}>{message}</Text>
+                </View>
+            )}
+
+
+
+
         </SafeAreaView>
     )
 }
@@ -283,7 +375,24 @@ const styles = StyleSheet.create({
         color: 'white',
         fontSize: 18,
         fontWeight: 'bold',
-    }
+    },
+    messageContainer: {
+        position: 'absolute',
+        bottom: 90,
+        left: 20,
+        right: 20,
+        backgroundColor: 'rgba(0,0,0,0.8)',
+        padding: 15,
+        borderRadius: 8,
+        alignItems: 'center',
+        zIndex: 999,
+    },
+    messageText: {
+        color: 'white',
+        fontSize: 14,
+        fontWeight: '500',
+    },
+
 });
 
 export default ProductDetails;

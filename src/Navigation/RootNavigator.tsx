@@ -7,13 +7,11 @@ import ProductDetails from "../Screens/ProductDetails"
 
 
 export type RootStackParams = {
-    OnboardingScreen: undefined
-    TabsStack: NavigatorScreenParams<TabsStackParams>
-    Deals: undefined
-    Cart: undefined
-    Profile: undefined
-
-    productDetails: {
+    OnboardingScreen: undefined;
+    TabsStack: NavigatorScreenParams<TabsStackParams>;
+    Deals: undefined;
+    Profile: undefined;
+    ProductDetails: { // Change "productDetails" to "ProductDetails"
         _id: string;
         images: [string];
         name: string;
@@ -23,6 +21,15 @@ export type RootStackParams = {
         color?: string;
         size?: string;
         description?: string;
+        quantity: number;
+    }
+    Cart: {
+        _id: string;
+        images: [string];
+        name: string;
+        price: number;
+        color?: string;
+        size?: string;
         quantity: number;
     }
 }
@@ -44,10 +51,12 @@ const RootNavigator = () => {
                 options={{ headerShown: false }}
             />
             <RootStack.Screen
-                name="productDetails"
+                name="ProductDetails"
                 component={ProductDetails}
                 options={{ headerShown: false }}
             />
+
+
         </RootStack.Navigator>
 
     )

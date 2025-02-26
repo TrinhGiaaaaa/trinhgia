@@ -21,7 +21,7 @@ export const getImageUrl = (imagePath: string) => {
     if (!imagePath) return null;
 
     // Replace localhost with your PC's IP address for Android
-    const IP_ADDRESS = '10.106.20.133'; // Update this with your PC's IP address
+    const IP_ADDRESS = '10.106.20.223'; // Update this with your PC's IP address
 
     if (Platform.OS === 'android') {
         if (imagePath.startsWith('http')) {
@@ -39,7 +39,7 @@ export const getImageUrl = (imagePath: string) => {
 
 // Update BASE_URL as well
 const BASE_URL = Platform.OS === 'android'
-    ? 'http://10.106.20.133:9000'
+    ? 'http://10.106.20.223:9000'
     : 'http://localhost:9000';
 
 const api = axios.create({
