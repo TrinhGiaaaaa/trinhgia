@@ -4,6 +4,7 @@ import OnboardingScreen from "../Screens/OnboardingScreen"
 import TabsNavigator, { TabsStackParams } from "./TabsNavigation"
 import { NavigatorScreenParams } from "@react-navigation/native"
 import ProductDetails from "../Screens/ProductDetails"
+import UserAuth from "../Screens/LoginRegisterScreen."
 
 
 export type RootStackParams = {
@@ -32,6 +33,16 @@ export type RootStackParams = {
         size?: string;
         quantity: number;
     }
+
+    UserLogin: {
+        email?: string;
+        password?: string;
+        confirmPassword?: string;
+        firstName?: string;
+        lastName?: string;
+        mobileNo?: string;
+        screenTitle?: string;
+    };
 }
 
 const RootStack = createNativeStackNavigator<RootStackParams>();
@@ -53,6 +64,11 @@ const RootNavigator = () => {
             <RootStack.Screen
                 name="ProductDetails"
                 component={ProductDetails}
+                options={{ headerShown: false }}
+            />
+            <RootStack.Screen
+                name="UserLogin"
+                component={UserAuth}
                 options={{ headerShown: false }}
             />
 
