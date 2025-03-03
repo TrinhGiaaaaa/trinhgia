@@ -39,15 +39,7 @@ const ProductDetails = ({ navigation, route }: TabsStackScreenProps<"ProductDeta
 
 
     const gotoCartScreen = () => {
-        if (cart.length === 0) {
-            setMessage("Cart is empty. Please add products to cart.");
-            setDisplayMessage(true);
-            setTimeout(() => {
-                setDisplayMessage(false);
-            }, 3000);
-        } else {
-            navigation.navigate("TabsStack", { screen: "Cart" });
-        }
+        navigation.navigate("TabsStack", { screen: "Cart" }); // Thay vì navigation.navigate("TabsStack", { screen: "Cart" });
     };
 
     const goToPreviousScreen = () => {

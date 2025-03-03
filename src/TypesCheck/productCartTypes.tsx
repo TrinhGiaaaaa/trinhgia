@@ -23,3 +23,14 @@ export interface CartState {
         length: number;
     }
 }
+
+export interface IUserForm {
+    label: string;
+    labelColor: string;
+    duration: number;
+    text: string;
+    updateText: (text: string) => void;
+    keyboardType?: string;
+    isPasswordField?: boolean;
+    error?: string;
+}
